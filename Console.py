@@ -1,4 +1,4 @@
-class Colors:
+class Console:
     NORMAL   = 0
     WARN     = 1
     ERROR    = 2
@@ -12,8 +12,9 @@ class Colors:
     END_COLOR = '\033[0m'
 
     @classmethod
-    def colorize(cls, message, type=0):
+    def out(cls, message, type=0, follow_with_newline=True):
         prefix = suffix = ''
+        newline = "\n" if follow_with_newline else ""
         if type == cls.WARN:
             prefix = cls.YELLOW
         elif type == cls.ERROR:
@@ -24,4 +25,4 @@ class Colors:
         if prefix:
             suffix = cls.END_COLOR
 
-        return "{0}{1}{2}".format(prefix, message, suffix)
+        print "{0}{1}{2}{3}".format(prefix, message, suffix, newline)
