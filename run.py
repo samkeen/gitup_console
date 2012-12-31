@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-
 __author__ = 'sam keen'
 from Updater import *
-from Console import *
 import argparse, settings
 
 # grab the commandline arguments

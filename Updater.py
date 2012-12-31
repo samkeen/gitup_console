@@ -33,13 +33,15 @@ class Updater:
         repos_to_clone = []
         for index in repo_index_input:
             if index == -1:
-                print "Selected ALL"
+                self.verbose("You've selected ALL repos")
                 repos_to_clone = self.settings.KNOWN_REPOS_GIT_REPO_NAMES
             elif index >= 0 and index <= (len(self.settings.KNOWN_REPOS_GIT_REPO_NAMES) -1):
                 repos_to_clone.append(self.settings.KNOWN_REPOS_GIT_REPO_NAMES[index])
-                print "The Repo is: {0}".format(self.settings.KNOWN_REPOS_GIT_REPO_NAMES[index])
+
             else:
-                print "Unknown index: {0}.  Ignoring it".format(index + 2)
+                Console.out("Unknown index: {0}.  Ignoring it".format(index + 2), Console.WARN)
+        if repos_to_clone:
+            self.verbose("The repos to be processed are: " + ", ".join(repos_to_clone))
         return repos_to_clone
 
     def command(self, command_to_run):
@@ -48,21 +50,21 @@ class Updater:
         try:
             p = subprocess.Popen(command_to_run, stdout=subprocess.PIPE)
         except Exception as e:
-            print "The command:\n  {0}, returned an error:".format(", ".join(command_to_run))
-            print e
-            print "Exiting..."
+            Console.out("The command:\n  {0}, returned an error:".format(", ".join(command_to_run)), Console.ERROR)
+            Console.out(e, Console.ERROR)
+            Console.out("Exiting...", Console.ERROR)
             sys.exit()
         output, error = p.communicate()
         if error:
-            print "The command: " + command_to_run + ", returned error[" + error + "]"
-            print "Exiting..."
+            Console.out("The command: " + command_to_run + ", returned error[" + error + "]", Console.ERROR)
+            Console.out("Exiting...", Console.ERROR)
             sys.exit()
         return output
 
     def assert_path_exists(self, path, additional_message=''):
         if not os.path.exists(path):
-            print "path [" + path + "] does not exist"
-            print additional_message
+            Console.out("path [" + path + "] does not exist", Console.ERROR)
+            Console.out(additional_message, Console.ERROR)
             sys.exit()
 
     def prep_build(self, settings):
@@ -78,25 +80,25 @@ class Updater:
         clone_url = settings.GIT_REPO_BASE_CLONE_PATH + "/{0}.git".format(repo_name)
         clone_target_path = "{0}/{1}".format(settings.BUILD_DIR, repo_name)
         git_command_parts = ['git', 'clone', clone_url, clone_target_path]
-        Console.out("Cloning Repo: {0}".format(repo_name))
-        Console.out("  {0}".format(" ".join(git_command_parts)))
+        self.verbose("Cloning Repo: {0}".format(repo_name))
+        self.verbose("  {0}".format(" ".join(git_command_parts)))
         self.prompt_user_to_continue()
-        print self.command(git_command_parts)
+        self.verbose(self.command(git_command_parts))
 
     def pull_branch_origin_latest(self, branch_name):
         self.assert_known_branch(branch_name)
         git_pull_command_parts = ['git', 'pull', 'origin', branch_name]
-        Console.out("issuing command:")
-        Console.out(" ".join(git_pull_command_parts))
-        print self.command(git_pull_command_parts)
+        self.verbose("issuing command:")
+        self.verbose(" ".join(git_pull_command_parts))
+        self.verbose(self.command(git_pull_command_parts))
 
     def assert_known_branch(self, branch_name):
         branch_list = self.get_branch_list()
         if not any(branch_name in s for s in branch_list):
-            print "Branch {0} is an unknown branch.  Known branches are [{1}]".format(
+            Console.out("Branch {0} is an unknown branch.  Known branches are [{1}]".format(
                 branch_name, ", ".join(branch_list)
-            )
-            print "Exiting..."
+            ), Console.ERROR)
+            Console("Exiting...", Console.ERROR)
             sys.exit()
 
     def get_branch_list(self):
@@ -118,38 +120,48 @@ class Updater:
     def init_submodule(self, submodule_path):
         self.assert_path_exists(submodule_path, "This is the expected path to the Saccharin submodule")
         init_command_parts = ['git', 'submodule', 'update', '--init', submodule_path]
-        Console.out("initing submodule: {0}". format(submodule_path))
-        Console.out(" ".join(init_command_parts))
-        print self.command(init_command_parts)
+        self.verbose("initing submodule: {0}". format(submodule_path))
+        self.verbose(" ".join(init_command_parts))
+        self.verbose(self.command(init_command_parts))
 
     def prompt_user_to_continue(self, message="Continue [y/N] "):
         if self.prompt_user_on:
             input = raw_input(message)
             if input.upper() != 'Y':
-                print "Exiting..."
+                Console.out("Exiting...", Console.WARN)
                 sys.exit()
 
+    def get_current_branch_name(self):
+        # git rev-parse --abbrev-ref HEAD
+        branch_name_command_parts = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+        self.verbose("Determining the current branch name")
+        self.verbose("Issuing command: " +  " ".join(branch_name_command_parts))
+        current_branch = self.command(branch_name_command_parts).strip()
+        self.verbose("Current branch name is: {0}". format(current_branch))
+        return current_branch
+
     def checkout_branch(self, branch_name):
-        """
-        :rtype : String The sha of the HEAD of the branch checked out.
-        """
         self.assert_known_branch(branch_name)
-        git_checkout_command_parts = ['git', 'checkout', branch_name]
-        Console.out("Issuing command:")
-        Console.out(" ".join(git_checkout_command_parts))
-        print self.command(git_checkout_command_parts)
+        current_branch_name = self.get_current_branch_name()
+        if branch_name == current_branch_name:
+            self.verbose("Already on branch {0}, no need to checkout to that branch".format(branch_name))
+        else:
+            git_checkout_command_parts = ['git', 'checkout', branch_name]
+            self.verbose("Issuing command:")
+            self.verbose(" ".join(git_checkout_command_parts))
+            self.verbose(self.command(git_checkout_command_parts))
         return self.command(['git', 'rev-parse', 'HEAD']).strip()
 
     def chdir_to_repo(self, settings, repo_name):
         repo_path = "{0}/{1}".format(settings.BUILD_DIR, repo_name)
         self.assert_path_exists(repo_path, "This is the expected path to the repo: {0}". format(repo_name))
-        Console.out("Changing to dir: {0}".format(repo_path))
+        self.verbose("Changing to dir: {0}".format(repo_path))
         os.chdir(repo_path)
 
     def chdir_to_repo_submodule(self, settings, repo_name, submodule_relative_path):
         submodule_path = "{0}/{1}/{2}".format(settings.BUILD_DIR, repo_name, submodule_relative_path)
         self.assert_path_exists(submodule_path, "This is the expected path to the repo submodule: {0}". format(submodule_relative_path))
-        Console.out("Changing to dir: {0}".format(submodule_path))
+        self.verbose("Changing to dir: {0}".format(submodule_path))
         os.chdir(submodule_path)
 
     def make_commit(self, commit_message, path_adds):
@@ -157,29 +169,23 @@ class Updater:
             path_adds = [path_adds]
         for path in path_adds:
             git_add_command_parts = ['git', 'add', path]
-            Console.out("Issuing command:")
-            Console.out(" ".join(git_add_command_parts))
-            Console.out(self.command(git_add_command_parts))
+            self.verbose("Issuing command:")
+            self.verbose(" ".join(git_add_command_parts))
+            self.verbose(self.command(git_add_command_parts))
         self.prompt_user_to_continue("\nContinue?[y/N]")
-        output = self.command(['git', 'commit', '-m', '{0}'.format(commit_message)])
-        Console.out(output)
+        self.verbose(self.command(['git', 'commit', '-m', '{0}'.format(commit_message)]))
 
     def push_to_origin(self, branch_name):
         Console.out("Pushing {0} to origin...".format(branch_name))
         git_push_command_parts = ['git', 'push', 'origin', branch_name]
         Console.out("Issuing command:")
         Console.out(" ".join(git_push_command_parts))
-        output = self.command(git_push_command_parts)
-        Console.out(output)
-
-    def test_for_need_to_update_submodule(self, origin_branch_name):
-        # git diff origin/master should return empty string
-        git_diff_command_parts = ['git', 'diff', "origin/{0}".format(origin_branch_name)]
+        Console.out(self.command(git_push_command_parts))
 
     def submodule_up_to_date(self, submodule_relative_path, submodule_target_sha):
         git_submodule_status_command_parts = ['git', 'submodule', 'status', submodule_relative_path]
-        Console.out("Issuing Command:")
-        Console.out(" ".join(git_submodule_status_command_parts))
+        self.verbose("Issuing Command:")
+        self.verbose(" ".join(git_submodule_status_command_parts))
         sha_response = self.command(git_submodule_status_command_parts)
         # -bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin
         repos_submodule_sha = re.findall(r'-([abcdef0-9]+) ', sha_response).pop(0)
@@ -191,15 +197,16 @@ class Updater:
         self.prep_build(self.settings)
         # get the current sha for the head of the target
         # submodule branch
-        self.verbose("First off, retrieving the sha for the HEAD of branch [{0}] of the target submodule [{1}]"
+        Console.out("\nDetermining the sha for the HEAD of branch [{0}] of the target submodule [{1}]"
                      .format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, self.settings.TARGET_SUBMODULE_NAME))
         self.clone_repo(self.settings, self.settings.TARGET_SUBMODULE_NAME)
         self.chdir_to_repo(self.settings, self.settings.TARGET_SUBMODULE_NAME)
         submodule_head_sha = self.checkout_branch(self.settings.TARGET_SUBMODULE_TARGET_BRANCH)
-        print "{0} sha is: {1}".format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, submodule_head_sha)
+        self.verbose("{0} sha is: {1}".format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, submodule_head_sha))
 
         # now update each repo
         for repo_name in repos_to_clone:
+            Console.out("\nProcessing repo: {0}".format(repo_name))
             self.clone_repo(self.settings, repo_name)
             self.chdir_to_repo(self.settings, repo_name)
             if not self.submodule_up_to_date(self.settings.TARGET_SUBMODULE_RELATIVE_PATH, submodule_head_sha):
