@@ -12,9 +12,16 @@ BUILD_DIR = THIS_DIR + "/build"
 GIT_REPO_BASE_CLONE_PATH = ''
 # The user of the script can choose to update all repos or
 # a subset of that.  This is the canonical complete list of
-# repo names
-KNOWN_REPOS_GIT_REPO_NAMES = []
-# For each repo (listed via KNOWN_REPOS_GIT_REPO_NAMES, this is the name (git repo name) of
+#  i.e.
+# KNOWN_REPOS = [
+#   {
+#     'name'  : 'project-x',
+#     'branch': 'development',
+#   },
+#   ...
+# ]
+KNOWN_REPOS = []
+# For each repo (listed via KNOWN_REPOS, this is the name (git repo name) of
 # the submodule to be updated.
 TARGET_SUBMODULE_NAME = ''
 

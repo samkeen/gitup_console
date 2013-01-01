@@ -18,8 +18,8 @@ class Updater:
 
     def get_menu(self):
         menu_list = "  1) ALL\n"
-        for index, repo_name in enumerate(self.settings.KNOWN_REPOS_GIT_REPO_NAMES):
-            menu_list += "  " + str(index + 2) + ") " + repo_name + "\n"
+        for index, repo_meta in enumerate(self.settings.KNOWN_REPOS):
+            menu_list += "  " + str(index + 2) + ") " + repo_meta['name'] + "\n"
         self.verbose("(note, this list built from settings.KNOWN_REPOS_GITHUB_NAMES)")
         return menu_list
 
@@ -27,6 +27,7 @@ class Updater:
         input = raw_input("Select the Repos to update (space|comma delimited list. i.e. 2 3 7 OR 2, 3, 7): ")
         # pull the input, trimming out extra space, taking commas into account if present
         input_repos = re.findall(r'\d+', input)
+        # convert the 'label index numbers to the actual indexes of the repos list
         return map(lambda x: int(x) - 2, input_repos)
 
     def get_repos_to_process(self, repo_index_input):
@@ -34,15 +35,20 @@ class Updater:
         for index in repo_index_input:
             if index == -1:
                 self.verbose("You've selected ALL repos")
-                repos_to_clone = self.settings.KNOWN_REPOS_GIT_REPO_NAMES
-            elif index >= 0 and index <= (len(self.settings.KNOWN_REPOS_GIT_REPO_NAMES) -1):
-                repos_to_clone.append(self.settings.KNOWN_REPOS_GIT_REPO_NAMES[index])
-
+                repos_to_clone = self.settings.KNOWN_REPOS
+            elif index >= 0 and index <= (len(self.settings.KNOWN_REPOS) -1):
+                repos_to_clone.append(self.settings.KNOWN_REPOS[index])
             else:
                 Console.out("Unknown index: {0}.  Ignoring it".format(index + 2), Console.WARN)
         if repos_to_clone:
-            self.verbose("The repos to be processed are: " + ", ".join(repos_to_clone))
+            self.verbose("The repos to be processed are: " + ", ".join(map(lambda x: x['name'], repos_to_clone)))
         return repos_to_clone
+#
+#    def get_repo_item_with_index(self, index_number):
+#        found_repo = None
+#        for repo_meta in self.settings.KNOWN_REPOS:
+#            if repo_meta['index'] == index_number
+#                found_repo =
 
     def command(self, command_to_run):
         if type(command_to_run) is str:
@@ -187,11 +193,14 @@ class Updater:
         self.verbose("Issuing Command:")
         self.verbose(" ".join(git_submodule_status_command_parts))
         sha_response = self.command(git_submodule_status_command_parts)
-        # -bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin
+        # parsing sha out of this type response -bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin
         repos_submodule_sha = re.findall(r'-([abcdef0-9]+) ', sha_response).pop(0)
         return repos_submodule_sha == submodule_target_sha
 
     def process_repos(self, repos_to_clone):
+        """
+        repos_to_clone list [{name:'', branch:''}, ...]
+        """
         commit_message = raw_input("Commit message for target submodule[{0}]: ".format(self.settings.TARGET_SUBMODULE_NAME))
         # cleanup from the last build
         self.prep_build(self.settings)
@@ -205,17 +214,18 @@ class Updater:
         self.verbose("{0} sha is: {1}".format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, submodule_head_sha))
 
         # now update each repo
-        for repo_name in repos_to_clone:
-            Console.out("\nProcessing repo: {0}".format(repo_name))
-            self.clone_repo(self.settings, repo_name)
-            self.chdir_to_repo(self.settings, repo_name)
+        for repo_meta in repos_to_clone:
+            Console.out("\nProcessing repo: {0}".format(repo_meta['name']))
+            self.clone_repo(self.settings, repo_meta['name'])
+            self.chdir_to_repo(self.settings, repo_meta['name'])
+            self.checkout_branch(repo_meta['branch'])
             if not self.submodule_up_to_date(self.settings.TARGET_SUBMODULE_RELATIVE_PATH, submodule_head_sha):
                 self.init_submodule(self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
-                self.chdir_to_repo_submodule(self.settings, repo_name, self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
+                self.chdir_to_repo_submodule(self.settings, repo_meta['name'], self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
                 self.pull_branch_origin_latest(self.settings.TARGET_SUBMODULE_TARGET_BRANCH)
-                self.chdir_to_repo(self.settings, repo_name)
+                self.chdir_to_repo(self.settings, repo_meta['name'])
                 self.make_commit(commit_message, self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
-                self.push_to_origin('development')
+                self.push_to_origin(repo_meta['branch'])
             else:
                 Console.out("The repo: {0} submodule {1} is already up to date. Skipping"
-                            .format(repo_name, self.settings.TARGET_SUBMODULE_NAME), Console.WARN)
+                            .format(repo_meta['name'], self.settings.TARGET_SUBMODULE_NAME), Console.WARN)
