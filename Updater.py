@@ -3,13 +3,13 @@ from Console import *
 
 class Updater:
     """Abstract the updating of a submodule within a git repo"""
-    verbose_on       = False
-    prompt_user_on   = False
-    settings         = None
+    verbose_on = False
+    prompt_user_on = False
+    settings = None
 
     def __init__(self, settings, commandline_args):
-        self.settings       = settings
-        self.verbose_on     = commandline_args.verbose
+        self.settings = settings
+        self.verbose_on = commandline_args.verbose
         self.prompt_user_on = commandline_args.prompt_user
 
     def verbose(self, message, type='normal'):
@@ -36,19 +36,20 @@ class Updater:
             if index == -1:
                 self.verbose("You've selected ALL repos")
                 repos_to_clone = self.settings.KNOWN_REPOS
-            elif index >= 0 and index <= (len(self.settings.KNOWN_REPOS) -1):
+            elif index >= 0 and index <= (len(self.settings.KNOWN_REPOS) - 1):
                 repos_to_clone.append(self.settings.KNOWN_REPOS[index])
             else:
                 Console.out("Unknown index: {0}.  Ignoring it".format(index + 2), Console.WARN)
         if repos_to_clone:
             self.verbose("The repos to be processed are: " + ", ".join(map(lambda x: x['name'], repos_to_clone)))
         return repos_to_clone
-#
-#    def get_repo_item_with_index(self, index_number):
-#        found_repo = None
-#        for repo_meta in self.settings.KNOWN_REPOS:
-#            if repo_meta['index'] == index_number
-#                found_repo =
+
+    #
+    #    def get_repo_item_with_index(self, index_number):
+    #        found_repo = None
+    #        for repo_meta in self.settings.KNOWN_REPOS:
+    #            if repo_meta['index'] == index_number
+    #                found_repo =
 
     def command(self, command_to_run):
         if type(command_to_run) is str:
@@ -126,7 +127,7 @@ class Updater:
     def init_submodule(self, submodule_path):
         self.assert_path_exists(submodule_path, "This is the expected path to the Saccharin submodule")
         init_command_parts = ['git', 'submodule', 'update', '--init', submodule_path]
-        self.verbose("initing submodule: {0}". format(submodule_path))
+        self.verbose("initing submodule: {0}".format(submodule_path))
         self.verbose(" ".join(init_command_parts))
         self.verbose(self.command(init_command_parts))
 
@@ -141,9 +142,9 @@ class Updater:
         # git rev-parse --abbrev-ref HEAD
         branch_name_command_parts = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
         self.verbose("Determining the current branch name")
-        self.verbose("Issuing command: " +  " ".join(branch_name_command_parts))
+        self.verbose("Issuing command: " + " ".join(branch_name_command_parts))
         current_branch = self.command(branch_name_command_parts).strip()
-        self.verbose("Current branch name is: {0}". format(current_branch))
+        self.verbose("Current branch name is: {0}".format(current_branch))
         return current_branch
 
     def checkout_branch(self, branch_name):
@@ -160,20 +161,50 @@ class Updater:
 
     def chdir_to_repo(self, settings, repo_name):
         repo_path = "{0}/{1}".format(settings.BUILD_DIR, repo_name)
-        self.assert_path_exists(repo_path, "This is the expected path to the repo: {0}". format(repo_name))
+        self.assert_path_exists(repo_path, "This is the expected path to the repo: {0}".format(repo_name))
         self.verbose("Changing to dir: {0}".format(repo_path))
         os.chdir(repo_path)
 
     def chdir_to_repo_submodule(self, settings, repo_name, submodule_relative_path):
+        """
+        Helper method to cd into the submodule dir (submodule_relative_path) for
+        a given (repo_name) repo dir.
+
+        Parameters
+        ----------
+        settings : module
+            The settings module for this app
+        repo_name : str
+            The repo dir name
+        submodule_relative_path : str
+            The relative (to repo dir) path to the submodule
+        Returns
+        ----------
+        None
+        """
         submodule_path = "{0}/{1}/{2}".format(settings.BUILD_DIR, repo_name, submodule_relative_path)
-        self.assert_path_exists(submodule_path, "This is the expected path to the repo submodule: {0}". format(submodule_relative_path))
+        self.assert_path_exists(submodule_path,
+            "This is the expected path to the repo submodule: {0}".format(submodule_relative_path))
         self.verbose("Changing to dir: {0}".format(submodule_path))
         os.chdir(submodule_path)
 
-    def make_commit(self, commit_message, path_adds):
-        if type(path_adds) is str:
-            path_adds = [path_adds]
-        for path in path_adds:
+    def make_commit(self, commit_message, paths_to_add):
+        """
+        Parameters
+        ----------
+        commit_message : str
+            Message for the commit
+            i.e. git commit -m {commit_message}
+        paths_to_add : str|list
+            A list of paths to explicitly add for this commit
+            i.e. git add {path_add}
+        Returns
+        ----------
+        None
+        """
+        if type(paths_to_add) is str:
+            paths_to_add = [paths_to_add]
+        for path in paths_to_add:
             git_add_command_parts = ['git', 'add', path]
             self.verbose("Issuing command:")
             self.verbose(" ".join(git_add_command_parts))
@@ -182,6 +213,15 @@ class Updater:
         self.verbose(self.command(['git', 'commit', '-m', '{0}'.format(commit_message)]))
 
     def push_to_origin(self, branch_name):
+        """
+        Parameters
+        ----------
+        branch_name : str
+            the branch at origin to push to
+        Returns
+        ----------
+        None
+        """
         Console.out("Pushing {0} to origin...".format(branch_name))
         git_push_command_parts = ['git', 'push', 'origin', branch_name]
         Console.out("Issuing command:")
@@ -189,6 +229,18 @@ class Updater:
         Console.out(self.command(git_push_command_parts))
 
     def submodule_up_to_date(self, submodule_relative_path, submodule_target_sha):
+        """
+        Parameters
+        ----------
+        submodule_relative_path : str
+            With respect to the Repo, the relative path to the submodule
+        submodule_target_sha : str
+            The sha we expect the submodule to be at in order to be considered
+            'up to date'
+        Returns
+        ----------
+        bool
+        """
         git_submodule_status_command_parts = ['git', 'submodule', 'status', submodule_relative_path]
         self.verbose("Issuing Command:")
         self.verbose(" ".join(git_submodule_status_command_parts))
@@ -199,15 +251,24 @@ class Updater:
 
     def process_repos(self, repos_to_clone):
         """
-        repos_to_clone list [{name:'', branch:''}, ...]
+        Parameters
+        ----------
+        repos_to_clone : list
+            List of Repos to process.  Each element of the list is a 2 item dict
+            with keys: 'name' and 'branch'
+            ex: [{name:'', branch:''}, ...]
+        Returns
+        ----------
+        None
         """
-        commit_message = raw_input("Commit message for target submodule[{0}]: ".format(self.settings.TARGET_SUBMODULE_NAME))
+        commit_message = raw_input(
+            "Commit message for target submodule[{0}]: ".format(self.settings.TARGET_SUBMODULE_NAME))
         # cleanup from the last build
         self.prep_build(self.settings)
         # get the current sha for the head of the target
         # submodule branch
         Console.out("\nDetermining the sha for the HEAD of branch [{0}] of the target submodule [{1}]"
-                     .format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, self.settings.TARGET_SUBMODULE_NAME))
+        .format(self.settings.TARGET_SUBMODULE_TARGET_BRANCH, self.settings.TARGET_SUBMODULE_NAME))
         self.clone_repo(self.settings, self.settings.TARGET_SUBMODULE_NAME)
         self.chdir_to_repo(self.settings, self.settings.TARGET_SUBMODULE_NAME)
         submodule_head_sha = self.checkout_branch(self.settings.TARGET_SUBMODULE_TARGET_BRANCH)
@@ -221,11 +282,12 @@ class Updater:
             self.checkout_branch(repo_meta['branch'])
             if not self.submodule_up_to_date(self.settings.TARGET_SUBMODULE_RELATIVE_PATH, submodule_head_sha):
                 self.init_submodule(self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
-                self.chdir_to_repo_submodule(self.settings, repo_meta['name'], self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
+                self.chdir_to_repo_submodule(self.settings, repo_meta['name'],
+                                             self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
                 self.pull_branch_origin_latest(self.settings.TARGET_SUBMODULE_TARGET_BRANCH)
                 self.chdir_to_repo(self.settings, repo_meta['name'])
                 self.make_commit(commit_message, self.settings.TARGET_SUBMODULE_RELATIVE_PATH)
                 self.push_to_origin(repo_meta['branch'])
             else:
                 Console.out("The repo: {0} submodule {1} is already up to date. Skipping"
-                            .format(repo_meta['name'], self.settings.TARGET_SUBMODULE_NAME), Console.WARN)
+                .format(repo_meta['name'], self.settings.TARGET_SUBMODULE_NAME), Console.WARN)
