@@ -149,11 +149,11 @@ class Updater:
         ----------
         None
         """
-        self.verbose("Removing build dir at: {}".format(settings.BUILD_DIR))
+        self.verbose("Removing build dir at: {0}".format(settings.BUILD_DIR))
         if os.path.isdir(settings.BUILD_DIR):
             shutil.rmtree(settings.BUILD_DIR)
             # create the build dir
-        self.verbose("Creating build dir at: {}".format(settings.BUILD_DIR))
+        self.verbose("Creating build dir at: {0}".format(settings.BUILD_DIR))
         os.mkdir(settings.BUILD_DIR)
 
     def clone_repo(self, settings, repo_name):
