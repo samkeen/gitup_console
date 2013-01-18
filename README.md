@@ -1,1 +1,1 @@
-Simple Pythn script for updating a submodule shared by multiple repositories
+Simple Python script for updating a submodule shared by multiple repositories
