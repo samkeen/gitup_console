@@ -62,14 +62,17 @@ class Updater
     # cleanup from the last build
     prep_build
     # get the current sha for the head of the target submodule branch
-    verbose("Getting the sha for the origin/HEAD of the submodule #{@settings['target_submodule_name']} we are going to be updating")
+    verbose "First, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
+    verbose 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
     clone_repo_to(@settings['target_submodule_name'], @settings['build_dir'])
     chdir_to_repo(@settings['target_submodule_name'])
     submodule_head_sha = checkout_branch(@settings['target_submodule_target_branch'])
-    verbose("#{@settings['target_submodule_target_branch']} sha is: #{submodule_head_sha}")
+    verbose("Determined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
+
+    verbose("\nNow starting the process of all the repos you've chosen to update\n")
 
     @requested_repos.each do |repo_to_clone|
-      verbose("Processing repo: #{repo_to_clone}")
+      verbose("Processing repo: '#{repo_to_clone['name']}'")
       clone_repo_to(repo_to_clone['name'], @settings['build_dir'])
       chdir_to_repo(repo_to_clone['name'])
       checkout_branch(repo_to_clone['branch'])
@@ -93,7 +96,6 @@ class Updater
           push_to_origin(repo['name'], repo['branch'])
         end
       end
-
     end
   end
 
@@ -114,8 +116,7 @@ class Updater
     clone_url         = "#{@settings['git_repo_base_clone_path']}/#{repo_name}.git"
     clone_target_path = "#{target_dir}/#{repo_name}"
     clone_cmd         = "git clone #{clone_url} #{clone_target_path}"
-    verbose("Cloning Repo: #{repo_name}")
-    verbose("  #{clone_cmd}")
+    verbose("Cloning Repo: '#{repo_name}' to: '#{clone_target_path}'")
     @commander.run_command(clone_cmd)
   end
 
@@ -156,7 +157,7 @@ class Updater
     assert_known_branch(branch_name)
     current_branch_name = get_current_branch_name
     if branch_name == current_branch_name
-      verbose("Already on branch #{branch_name}, no need to checkout to that branch")
+      verbose("Already on branch '#{branch_name}', no need to checkout to that branch")
     else
       git_checkout_command = "git checkout #{branch_name}"
       verbose("Issuing command: #{git_checkout_command}")
@@ -167,8 +168,8 @@ class Updater
 
   # @param [String] branch_name
   def assert_known_branch(branch_name)
-    branch_list = get_branch_list()
     verbose "Asserting branch: '#{branch_name}' is a known branch for this repo"
+    branch_list = get_branch_list()
     unless branch_list.include? branch_name
       puts("Branch #{branch_name} is an unknown branch.".colorize :yellow)
       puts("Known branches are: [#{branch_list.join(', ')}]".colorize :yellow)
@@ -191,7 +192,7 @@ class Updater
     branch_name_command = 'git rev-parse --abbrev-ref HEAD'
     verbose('Determining the current branch name')
     current_branch = @commander.run_command(branch_name_command).strip()
-    verbose("Current branch name is: #{current_branch}")
+    verbose("Current branch name is: '#{current_branch}'")
     current_branch
   end
 
@@ -210,7 +211,7 @@ class Updater
   # @param [String] submodule_path
   def init_submodule(submodule_path)
     assert_path_exists(submodule_path, 'This is the expected path to the Saccharin submodule')
-    verbose("Initializing submodule: #{submodule_path}")
+    verbose("Initializing all submodules at path: '#{Dir.pwd}/#{submodule_path}'")
     @commander.run_command("git submodule update --init #{submodule_path}")
   end
 
