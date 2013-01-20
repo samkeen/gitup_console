@@ -1,6 +1,3 @@
 .idea
 build
-settings.py
 settings.yml
-*.pyo
-*.pyc
