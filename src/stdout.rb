@@ -1,9 +1,7 @@
 # requirement: Ruby gem colorize
 class Stdout
 
-  def initialize(verbose_on=false)
-    @verbose_on = verbose_on
-  end
+  attr_accessor :verbose_on
 
   # abstract sending STDOUT to console
   @type_color_map = {
@@ -42,7 +40,7 @@ class Stdout
   # @param [Symbol] color one of values in @type_color_map
   def _out(message, color=nil)
     if color.nil?
-      if @verbose_on
+      if verbose_on
         puts message.colorize @type_color_map[:verbose]
       else
         puts message
