@@ -32,8 +32,6 @@ puts updater.get_menu
 
 input_repo_indexes = updater.get_menu_input()
 
-puts input_repo_indexes.inspect
-
 if updater.have_repos_to_clone?
     updater.process_repos
 else

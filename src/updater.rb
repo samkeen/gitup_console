@@ -33,6 +33,7 @@ class Updater
     @settings['known_repos'].each_with_index do |repo, index|
       menu_list << "  #{index+2}) #{repo['name']} (Branch: '#{repo['branch']}')\n"
     end
+    menu_list << ("\nEnter 1 for All, or a list of the Repos you want to process (ex: 2 4 5)".colorize :green)
     menu_list
   end
 
@@ -44,7 +45,7 @@ class Updater
     user_inputs.each do |input|
       if input == -1
         @requested_repos = @settings['known_repos']
-        @stdout.out_warn 'You\'ve Selected ALL'
+        @stdout.out_success 'You\'ve Selected ALL'
         @have_repos_to_clone=true
         break
       elsif input.between?(-1, highest_known_repo_index)
@@ -59,22 +60,20 @@ class Updater
 
   # This is where all the heavy lifting happens
   def process_repos
-    @stdout.out "Commit message: (used for the commit on each repo to describe the purpose of updating the '#{@settings['target_submodule_name']}' submodule)."
+    @stdout.out_success "Commit message: (used for the commit on each repo to describe the purpose of updating the '#{@settings['target_submodule_name']}' submodule)."
     commit_message = strip_chars(gets.chomp(), ' "\'')
     # cleanup from the last build
     prep_build
     # get the current sha for the head of the target submodule branch
-    verbose "First, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
-    verbose 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
+    @stdout.out_success "\nFirst, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
+    @stdout.out_success 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
     clone_repo_to(@settings['target_submodule_name'], @settings['build_dir'])
     chdir_to_repo(@settings['target_submodule_name'])
     submodule_head_sha = checkout_branch(@settings['target_submodule_target_branch'])
-    verbose("Determined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
-
+    @stdout.out_success("\nDetermined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
     verbose("\nNow starting the process of all the repos you've chosen to update\n")
-
     @requested_repos.each do |repo_to_clone|
-      verbose("Processing repo: '#{repo_to_clone['name']}'")
+      @stdout.out_success("\nProcessing repo: '#{repo_to_clone['name']}'")
       clone_repo_to(repo_to_clone['name'], @settings['build_dir'])
       chdir_to_repo(repo_to_clone['name'])
       checkout_branch(repo_to_clone['branch'])
@@ -91,9 +90,9 @@ class Updater
       end
     end
     if @repos_to_push.count > 0
-      @stdout.out_success "\n#{@repos_to_push.count} Repos have been updated and are ready to push."
-      @stdout.out_success "Press any key to start that process (you will be asked to confirm for each Repo prior to pushing to Origin)"
-      gets
+      has_is, has_are = @repos_to_push.count == 1 ? %w(has is) : %w(has are)
+      @stdout.out_success "\n#{@repos_to_push.count} Repo #{has_is} been updated and #{has_are} ready to push."
+      @stdout.out_success 'Starting confirmations to make actual pushes to Origin'
       @repos_to_push.each do |repo|
         push_to_origin(repo['name'], repo['branch'])
       end
@@ -103,6 +102,7 @@ class Updater
   # Cleanup from previous runs of app.
   # Create any resources (dirs, etc) for the next build
   def prep_build
+    @stdout.out("\nPreparing build dir at: '#{@settings['build_dir']}'")
     verbose("Removing build dir at: #{@settings['build_dir']}")
     FileUtils.rm_rf(@settings['build_dir'])
     # create the build dir
@@ -164,7 +164,9 @@ class Updater
       verbose("Issuing command: #{git_checkout_command}")
       verbose @commander.run_command(git_checkout_command)
     end
-    verbose @commander.run_command('git rev-parse HEAD').strip()
+    sha_of_branch = @commander.run_command('git rev-parse HEAD').strip()
+    verbose sha_of_branch
+    sha_of_branch
   end
 
   # @param [String] branch_name
@@ -215,7 +217,7 @@ class Updater
   # @param [String] submodule_path
   def init_submodule(submodule_path)
     assert_path_exists(submodule_path, 'This is the expected path to the Saccharin submodule')
-    verbose("Initializing all submodules at path: '#{Dir.pwd}/#{submodule_path}'")
+    @stdout.out_success("\nInitializing all submodules at path: '#{Dir.pwd}/#{submodule_path}'")
     verbose @commander.run_command("git submodule update --init #{submodule_path}")
   end
 
@@ -266,7 +268,7 @@ class Updater
   end
 
   def confirm_push(repo_name, branch_name)
-    @stdout.out("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log")
+    @stdout.out_success("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log\n")
     @stdout.out show_git_log(@settings['git_log_number_of_lines'])
     @stdout.out_success("Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
     gets.chomp.upcase == 'Y'
