@@ -60,7 +60,7 @@ class Updater
   # This is where all the heavy lifting happens
   def process_repos
     @stdout.out "Commit message: (used for the commit on each repo to describe the purpose of updating the '#{@settings['target_submodule_name']}' submodule)."
-    commit_message = gets.chomp()
+    commit_message = strip_chars(gets.chomp(), ' "\'')
     # cleanup from the last build
     prep_build
     # get the current sha for the head of the target submodule branch
@@ -250,6 +250,12 @@ class Updater
     verbose("Pushing repo [#{repo_name}]'s branch '#{branch_name}' to origin...")
     git_push_command = "git push origin #{branch_name}"
     @stdout.out "Would have run #{Dir.pwd}> #{git_push_command} here" #@commander.run_command(git_push_command)
+  end
+
+  # @param [String] string
+  # @param [String] chars A string containing the chars to be stripped. i.e. ' "'
+  def strip_chars(string, chars)
+    string.gsub(/\A[#{chars}]+|[#{chars}]+\Z/, '')
   end
 
 end
