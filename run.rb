@@ -15,6 +15,20 @@ require 'colorize'
 require 'yaml'
 require 'updater'
 
+verbose = false
+arg1 = ARGV[0]
+ARGV.clear
+case arg1
+  when nil
+    verbose = false
+  when '-v', '--version'
+    verbose = true
+  else
+    puts "Usage: #{__FILE__} [-v|--verbose]"
+    exit 1
+end
+
+
 settings = nil
 if File.file? SETTINGS_FILE_PATH
   settings = YAML::load File.open(SETTINGS_FILE_PATH)
@@ -25,34 +39,14 @@ end
 
 settings['build_dir'] = BUILD_DIR
 
-
-updater = Updater.new(Stdout.new, settings, :verbose => true)
+updater = Updater.new(Stdout.new, settings, :verbose => verbose)
 
 puts updater.get_menu
 
-input_repo_indexes = updater.get_menu_input()
+updater.record_menu_input()
 
-if updater.have_repos_to_clone?
+if updater.has_repos_to_clone?
     updater.process_repos
 else
     puts 'No valid repo indexes found, nothing to process'.colorize :yellow
 end
-
-# grab the commandline arguments
-#parser = argparse.ArgumentParser(description="This is a script that updates a git repo's submodule")
-#parser.add_argument('-v', help='verbose output', action="store_true", dest='verbose', default=False)
-#parser.add_argument('-p', help='prompt user to continue for all git interactions', action="store_true", dest='prompt_user', default=False)
-#commandline_args = parser.parse_args()
-#
-#updater = Updater(settings, commandline_args)
-#
-#print updater.get_menu()
-#
-#input_repo_indexes = updater.get_menu_input()
-#
-#repos_to_clone = updater.get_repos_to_process(input_repo_indexes)
-#
-#if repos_to_clone:
-#    updater.process_repos(repos_to_clone)
-#else:
-#    print Console.out("No valid repo indexes found, nothing to process", Console.WARN)

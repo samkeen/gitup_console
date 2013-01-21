@@ -23,7 +23,7 @@ class Updater
   end
 
   # @return [Boolean]
-  def have_repos_to_clone?
+  def has_repos_to_clone?
     not @requested_repos.empty?
   end
 
@@ -37,7 +37,7 @@ class Updater
     menu_list
   end
 
-  def get_menu_input
+  def record_menu_input
     # get all the digits we see in the input
     # reduce each number by 2 to match the known_repo indexes
     user_inputs = gets.chomp.scan(/\d+/).uniq.map{ |digit| digit.to_i - 2 }
@@ -55,7 +55,6 @@ class Updater
         @stdout.out_warn "Unknown index: #{input+2}, ignoring it"
       end
     end
-    @requested_repos
   end
 
   # This is where all the heavy lifting happens
@@ -102,7 +101,7 @@ class Updater
   # Cleanup from previous runs of app.
   # Create any resources (dirs, etc) for the next build
   def prep_build
-    @stdout.out("\nPreparing build dir at: '#{@settings['build_dir']}'")
+    @stdout.out_success("\nPreparing build dir at: '#{@settings['build_dir']}'")
     verbose("Removing build dir at: #{@settings['build_dir']}")
     FileUtils.rm_rf(@settings['build_dir'])
     # create the build dir
