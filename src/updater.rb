@@ -29,9 +29,9 @@ class Updater
 
   # @return [String]
   def get_menu
-    menu_list = "  1) ALL\n"
+    menu_list = "  1) ALL (process all repos listed below)\n"
     @settings['known_repos'].each_with_index do |repo, index|
-      menu_list << "  #{index+2}) #{repo['name']}\n"
+      menu_list << "  #{index+2}) #{repo['name']} (Branch: '#{repo['branch']}')\n"
     end
     menu_list
   end
