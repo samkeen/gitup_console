@@ -19,7 +19,7 @@ class Updater
 
   # @param [String] message
   def verbose(message)
-    @stdout.out_color(message, :cyan) if @verbose_on
+    @stdout.out(message) if @verbose_on
   end
 
   # @return [Boolean]
@@ -118,7 +118,7 @@ class Updater
     clone_target_path = "#{target_dir}/#{repo_name}"
     clone_cmd         = "git clone #{clone_url} #{clone_target_path}"
     verbose("Cloning Repo: '#{repo_name}' to: '#{clone_target_path}'")
-    @commander.run_command(clone_cmd)
+    verbose @commander.run_command(clone_cmd)
   end
 
   # Helper method to cd into the given (repo_name) repo dir.
@@ -162,9 +162,9 @@ class Updater
     else
       git_checkout_command = "git checkout #{branch_name}"
       verbose("Issuing command: #{git_checkout_command}")
-      @commander.run_command(git_checkout_command)
+      verbose @commander.run_command(git_checkout_command)
     end
-    @commander.run_command('git rev-parse HEAD').strip()
+    verbose @commander.run_command('git rev-parse HEAD').strip()
   end
 
   # @param [String] branch_name
@@ -182,6 +182,7 @@ class Updater
   # @return [Array]
   def get_branch_list
     branch_cmd_output = @commander.run_command('git branch')
+    verbose branch_cmd_output
     parts = branch_cmd_output.split(/\n/)
     # trim off whitespace and *'s
     parts.collect!{|x| x.tr(' *', '')}
@@ -193,6 +194,7 @@ class Updater
     branch_name_command = 'git rev-parse --abbrev-ref HEAD'
     verbose('Determining the current branch name')
     current_branch = @commander.run_command(branch_name_command).strip()
+    verbose current_branch
     verbose("Current branch name is: '#{current_branch}'")
     current_branch
   end
@@ -203,6 +205,7 @@ class Updater
   def submodule_up_to_date(submodule_relative_path, submodule_target_sha)
     git_submodule_status_command = "git submodule status #{submodule_relative_path}"
     sha_response = @commander.run_command(git_submodule_status_command)
+    verbose sha_response
     # parsing sha out of this type response -bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin
     sha_response.match(/-([abcdef0-9]+) /)
     repos_submodule_sha = $1
@@ -213,7 +216,7 @@ class Updater
   def init_submodule(submodule_path)
     assert_path_exists(submodule_path, 'This is the expected path to the Saccharin submodule')
     verbose("Initializing all submodules at path: '#{Dir.pwd}/#{submodule_path}'")
-    @commander.run_command("git submodule update --init #{submodule_path}")
+    verbose @commander.run_command("git submodule update --init #{submodule_path}")
   end
 
   # Update current branch to the latest on origin
@@ -222,7 +225,7 @@ class Updater
   def pull_branch_origin_latest(branch_name)
     verbose "Update branch: '#{branch_name}' to the latest on origin "
     assert_known_branch(branch_name)
-    @commander.run_command("git pull origin #{branch_name}")
+    verbose @commander.run_command("git pull origin #{branch_name}")
   end
 
   # @param [String] commit_message
@@ -233,10 +236,10 @@ class Updater
       paths_to_add = [paths_to_add]
     end
     paths_to_add.each do |path|
-      @commander.run_command("git add #{path}")
+      verbose @commander.run_command("git add #{path}")
     end
     commit_message.sub!('\'', '')
-    @commander.run_command("git commit -m'#{commit_message}'")
+    verbose @commander.run_command("git commit -m'#{commit_message}'")
   end
 
   # @param [String] repo_name
@@ -264,8 +267,8 @@ class Updater
 
   def confirm_push(repo_name, branch_name)
     @stdout.out("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log")
-    show_git_log(@settings['git_log_number_of_lines'])
-    @stdout.out("Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
+    @stdout.out show_git_log(@settings['git_log_number_of_lines'])
+    @stdout.out_success("Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
     gets.chomp.upcase == 'Y'
   end
 
