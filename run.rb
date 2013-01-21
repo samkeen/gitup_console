@@ -26,7 +26,7 @@ end
 settings['build_dir'] = BUILD_DIR
 
 
-updater = Updater.new(settings, :verbose => true)
+updater = Updater.new(Stdout.new, settings, :verbose => true)
 
 puts updater.get_menu
 

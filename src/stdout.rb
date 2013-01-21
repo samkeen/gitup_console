@@ -4,34 +4,44 @@ class Stdout
   attr_accessor :verbose_on
 
   # abstract sending STDOUT to console
-  @type_color_map = {
-      default: nil,
-      verbose: :cyan,
-      success: :green,
-      warn:    :yellow,
-      error:   :red
-  }
+
+  def initialize
+    @type_color_map = {
+        default: nil,
+        success: :green,
+        warn:    :yellow,
+        error:   :red
+    }
+  end
 
   # send a default type message
-  def send(message)
+  # @param [String] message
+  def out(message)
     _out message, @type_color_map[:default]
+  end
+
+  # send a message with a specific color
+  # @param [String] message
+  # @param [Symbol] color
+  def out_color(message, color)
+    _out message, color
   end
 
   # send a success type message
   # @param [String] message
-  def send_success(message)
+  def out_success(message)
     _out message, @type_color_map[:success]
   end
 
   # send a warn type message
   # @param [String] message
-  def send_warn(message)
+  def out_warn(message)
     _out message, @type_color_map[:warn]
   end
 
   # send and error type message
   # @param [String] message
-  def send_error(message)
+  def out_error(message)
     _out message, @type_color_map[:error]
   end
 
@@ -40,11 +50,7 @@ class Stdout
   # @param [Symbol] color one of values in @type_color_map
   def _out(message, color=nil)
     if color.nil?
-      if verbose_on
-        puts message.colorize @type_color_map[:verbose]
-      else
-        puts message
-      end
+      puts message
     else
       puts message.colorize color
     end

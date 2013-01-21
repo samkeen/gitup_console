@@ -1,23 +1,25 @@
 require 'FileUtils'
 require 'command'
+require 'stdout'
 
 class Updater
 
   # @param [Hash] settings
   # @param [Hash] options
-  def initialize(settings, options = {})
-    @settings        = settings
-    @verbose_on      = options[:verbose]
-    @requested_repos = []
-    @repos_to_push   = []
-    @commander       = Command.new
+  # @param [Stdout] stdout
+  def initialize(stdout, settings, options = {})
+    @settings         = settings
+    @verbose_on       = options[:verbose]
+    @requested_repos  = []
+    @repos_to_push    = []
+    @commander        = Command.new
+    stdout.verbose_on = @verbose_on
+    @stdout           = stdout
   end
 
   # @param [String] message
   def verbose(message)
-    if @verbose_on
-      puts message.colorize :cyan
-    end
+    @stdout.out_color(message, :cyan) if @verbose_on
   end
 
   # @return [Boolean]
@@ -42,14 +44,14 @@ class Updater
     user_inputs.each do |input|
       if input == -1
         @requested_repos = @settings['known_repos']
-        puts 'You\'ve Selected ALL'.colorize(:yellow)
+        @stdout.out_warn 'You\'ve Selected ALL'
         @have_repos_to_clone=true
         break
       elsif input.between?(-1, highest_known_repo_index)
         @requested_repos << @settings['known_repos'][input]
         @have_repos_to_clone=true
       else
-        puts "Unknown index: #{input+2}, ignoring it".colorize(:yellow)
+        @stdout.out_warn "Unknown index: #{input+2}, ignoring it"
       end
     end
     @requested_repos
@@ -57,7 +59,7 @@ class Updater
 
   # This is where all the heavy lifting happens
   def process_repos
-    puts "Commit message: (used for the commit on each repo to describe the purpose of updating the '#{@settings['target_submodule_name']}' submodule)."
+    @stdout.out "Commit message: (used for the commit on each repo to describe the purpose of updating the '#{@settings['target_submodule_name']}' submodule)."
     commit_message = gets.chomp()
     # cleanup from the last build
     prep_build
@@ -78,7 +80,7 @@ class Updater
       checkout_branch(repo_to_clone['branch'])
 
       if submodule_up_to_date(repo_to_clone['submodule_dir'], submodule_head_sha)
-        puts("The repo: #{repo_to_clone['name']} submodule {@settings['target_submodule_name']} is already up to date. Skipping".colorize(:yellow))
+        @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule {@settings['target_submodule_name']} is already up to date. Skipping"
       else
         init_submodule(repo_to_clone['submodule_dir'])
         chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
@@ -89,7 +91,7 @@ class Updater
       end
     end
     if @repos_to_push.count > 0
-      puts "#{@repos_to_push.count} have been updated and are ready to push.  Would you like me to do that?  [y/N]"
+      @stdout.out "#{@repos_to_push.count} have been updated and are ready to push.  Would you like me to do that?  [y/N]"
       user_input = gets.chomp.strip.upcase
       if user_input == 'Y'
         @repos_to_push.each do |repo|
@@ -144,8 +146,8 @@ class Updater
   # @param [String] additional_message
   def assert_path_exists(path, additional_message = '')
     if ! File.file? path and ! File.directory? path
-      puts("path [#{path}] does not exist".colorize(:red))
-      puts(additional_message.colorize(:red))
+      @stdout.out_error "path [#{path}] does not exist"
+      @stdout.out_error additional_message
       exit 1
     end
   end
@@ -171,9 +173,9 @@ class Updater
     verbose "Asserting branch: '#{branch_name}' is a known branch for this repo"
     branch_list = get_branch_list()
     unless branch_list.include? branch_name
-      puts("Branch #{branch_name} is an unknown branch.".colorize :yellow)
-      puts("Known branches are: [#{branch_list.join(', ')}]".colorize :yellow)
-      puts('Exiting...'.colorize(:red))
+      @stdout.out_warn "Branch #{branch_name} is an unknown branch."
+      @stdout.out_warn "Known branches are: [#{branch_list.join(', ')}]"
+      @stdout.out_error 'Exiting...'
       exit 1
     end
   end
@@ -247,7 +249,7 @@ class Updater
     assert_known_branch branch_name
     verbose("Pushing repo [#{repo_name}]'s branch '#{branch_name}' to origin...")
     git_push_command = "git push origin #{branch_name}"
-    puts "Would have run #{Dir.pwd}>#{git_push_command} here" #@commander.run_command(git_push_command)
+    @stdout.out "Would have run #{Dir.pwd}> #{git_push_command} here" #@commander.run_command(git_push_command)
   end
 
 end
