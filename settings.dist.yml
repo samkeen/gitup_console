@@ -1,7 +1,12 @@
+# git log format
+# used to show to user so they can review prior to pushing changes to origin
+git_log_format: --pretty=format:"%h%x09%an%x09%ad%x09%s" --graph
+
 # base path where all the respective git repos are housed.  Only
 # one value supported.
 # ex: 'git@github.com:octocat'
 git_repo_base_clone_path:
+
 # The user of the script can choose to update all repos or
 # a subset of that.  This is the canonical complete list of
 #  i.e.
@@ -25,11 +30,6 @@ known_repos:
 # name (git repo name) of
 # the submodule to be updated.
 target_submodule_name:
-
-# the relative path (in contexts of the top dir of
-# a repo using the submodule)
-# to the target sub-module
-target_submodule_relative_path:
 
 # this is the branch name that target submodule
 # will be pulled to the HEAD of
