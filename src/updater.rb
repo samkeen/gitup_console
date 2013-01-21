@@ -91,12 +91,11 @@ class Updater
       end
     end
     if @repos_to_push.count > 0
-      @stdout.out "#{@repos_to_push.count} have been updated and are ready to push.  Would you like me to do that?  [y/N]"
-      user_input = gets.chomp.strip.upcase
-      if user_input == 'Y'
-        @repos_to_push.each do |repo|
-          push_to_origin(repo['name'], repo['branch'])
-        end
+      @stdout.out_success "\n#{@repos_to_push.count} Repos have been updated and are ready to push."
+      @stdout.out_success "Press any key to start that process (you will be asked to confirm for each Repo prior to pushing to Origin)"
+      gets
+      @repos_to_push.each do |repo|
+        push_to_origin(repo['name'], repo['branch'])
       end
     end
   end
@@ -247,15 +246,31 @@ class Updater
     assert_path_exists repo_path, "Was cd'ing to the repo #{repo_name} in order to push it to origin but the dir was not there??"
     chdir_to_repo repo_name
     assert_known_branch branch_name
-    verbose("Pushing repo [#{repo_name}]'s branch '#{branch_name}' to origin...")
-    git_push_command = "git push origin #{branch_name}"
-    @stdout.out "Would have run #{Dir.pwd}> #{git_push_command} here" #@commander.run_command(git_push_command)
+    if confirm_push(repo_name, branch_name)
+      verbose("Pushing repo [#{repo_name}]'s branch '#{branch_name}' to origin...")
+      git_push_command = "git push origin #{branch_name}"
+      @stdout.out "Would have run #{Dir.pwd}> #{git_push_command} here" #@commander.run_command(git_push_command)
+    else
+      @stdout.out_warn("Skipping push of repo #{repo_name}")
+    end
+
   end
 
   # @param [String] string
   # @param [String] chars A string containing the chars to be stripped. i.e. ' "'
   def strip_chars(string, chars)
     string.gsub(/\A[#{chars}]+|[#{chars}]+\Z/, '')
+  end
+
+  def confirm_push(repo_name, branch_name)
+    @stdout.out("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log")
+    show_git_log(@settings['git_log_number_of_lines'])
+    @stdout.out("Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
+    gets.chomp.upcase == 'Y'
+  end
+
+  def show_git_log(number_of_lines)
+    @commander.run_command "git log #{@settings['git_log_format']} -#{number_of_lines}"
   end
 
 end

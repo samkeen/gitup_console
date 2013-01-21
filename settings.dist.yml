@@ -1,6 +1,7 @@
 # git log format
 # used to show to user so they can review prior to pushing changes to origin
 git_log_format: --pretty=format:"%h%x09%an%x09%ad%x09%s" --graph
+git_log_number_of_lines: 10
 
 # base path where all the respective git repos are housed.  Only
 # one value supported.
