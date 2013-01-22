@@ -82,10 +82,14 @@ class Updater
       else
         init_submodule(repo_to_clone['submodule_dir'])
         chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
-        pull_branch_origin_latest(@settings['target_submodule_target_branch'])
-        chdir_to_repo(repo_to_clone['name'])
-        make_git_commit(commit_message, "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
-        @repos_to_push << repo_to_clone
+        if confirm_log_diff_with_origin
+          pull_branch_origin_latest(@settings['target_submodule_target_branch'])
+          chdir_to_repo(repo_to_clone['name'])
+          make_git_commit(commit_message, "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
+          @repos_to_push << repo_to_clone
+        else
+          @stdout.out_warn("Skipping processing of repo #{repo_to_clone['name']}")
+        end
       end
     end
     if @repos_to_push.count > 0
@@ -266,6 +270,20 @@ class Updater
     string.gsub(/\A[#{chars}]+|[#{chars}]+\Z/, '')
   end
 
+  # runs `git log HEAD..origin/{branch we are pulling from}`
+  # this lets the client see the commits on origin that are about to
+  # be pulled
+  # @return [Boolean]
+  def confirm_log_diff_with_origin
+    @stdout.out_success("\nCommits on Origin that will be pulled\n")
+    @stdout.out show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}")
+    @stdout.out_success("Confirm pull? [y/N]")
+    gets.chomp.upcase == 'Y'
+  end
+
+  # Show user last (n) commits, so they can do a sanity check prior to pushing to origin
+  # @param [String] repo_name
+  # @param [String] branch_name
   def confirm_push(repo_name, branch_name)
     @stdout.out_success("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log\n")
     @stdout.out show_git_log(@settings['git_log_number_of_lines'])
@@ -273,8 +291,12 @@ class Updater
     gets.chomp.upcase == 'Y'
   end
 
-  def show_git_log(number_of_lines)
-    @commander.run_command "git log #{@settings['git_log_format']} -#{number_of_lines}"
+  # @param [Integer] number_of_lines
+  # @param [String] log_endpoints ex: 'HEAD..origin/master'
+  def show_git_log(number_of_lines, log_endpoints=nil)
+    num_lines_arg = number_of_lines.nil? ? '' : "-#{number_of_lines}"
+    log_endpoints = log_endpoints.nil? ? '' : log_endpoints
+    @commander.run_command "git log #{@settings['git_log_format']} #{num_lines_arg} #{log_endpoints}"
   end
 
 end
