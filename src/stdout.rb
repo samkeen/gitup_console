@@ -14,6 +14,11 @@ class Stdout
     }
   end
 
+  # @param [String] message
+  def verbose(message)
+    out(message) if verbose_on
+  end
+
   # send a default type message
   # @param [String] message
   def out(message)
