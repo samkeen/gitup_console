@@ -28,6 +28,16 @@ case arg1
     exit 1
 end
 
+puts "\nThis script is implemented in a way to DO NO HARM. This is accomplished via: \n".colorize :green
+puts "  * All local work with Repos is done in an isolated build directory [#{BUILD_DIR}]".colorize :green
+puts "    None of your locally configured dev environments will be harmed".colorize :green
+puts ""
+puts "  * Multiple 'sanity check' confirmations occur during the process".colorize :green
+puts "    If something doesn't look right for a repo, you can skip it and move to the next".colorize :green
+puts ""
+puts "  * This script will NEVER PUSH TO ORIGIN without your confirmation\n".colorize :green
+puts ""
+puts "  * Fully stateless. The build dir is removed and re-created for each run of the script\n".colorize :green
 
 settings = nil
 if File.file? SETTINGS_FILE_PATH

@@ -83,8 +83,8 @@ class Updater
       end
     end
     if @repos_to_push.count > 0
-      has_is, has_are = @repos_to_push.count == 1 ? %w(has is) : %w(has are)
-      @stdout.out_success "\n#{@repos_to_push.count} Repo #{has_is} been updated and #{has_are} ready to push."
+      single_plural = @repos_to_push.count == 1 ? 'Repo has been updated and is' : 'Repos have been updated and are'
+      @stdout.out_success "\n#{@repos_to_push.count} #{single_plural} ready to push."
       @stdout.out_success 'Starting confirmations to make actual pushes to Origin'
       @repos_to_push.each do |repo|
         push_to_origin(repo['name'], repo['branch'])
