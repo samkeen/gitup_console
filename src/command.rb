@@ -13,7 +13,7 @@ class Command
   #
   # @param [String] command The bash command to run
   # @param [Hash] options
-  # @return [String] STDOUT (also puts STDOUT)
+  # @return [String] STDOUT
   def run_command(command, options = {})
     options[:fail_on_error] ||= false
     output = ''

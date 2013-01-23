@@ -60,11 +60,7 @@ class Updater
     commit_message = strip_chars(gets.chomp(), ' "\'')
     # cleanup from the last build
     prep_build
-    # get the current sha for the head of the target submodule branch
-    @stdout.out_success "\nFirst, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
-    @stdout.out_success 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
-    submodule_head_sha = get_sha_for_branch_origin_head
-    @stdout.out_success("\nDetermined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
+    submodule_head_sha = determine_submodule_sha
     @stdout.verbose("\nNow starting the process of all the repos you've chosen to update\n")
     @requested_repos.each do |repo_to_clone|
       @stdout.out_success("\nProcessing repo: '#{repo_to_clone['name']}'")
@@ -72,7 +68,7 @@ class Updater
       chdir_to_repo(repo_to_clone['name'])
       checkout_branch(repo_to_clone['branch'])
       if submodule_up_to_date(repo_to_clone['submodule_dir'], submodule_head_sha)
-        @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule {@settings['target_submodule_name']} is already up to date. Skipping"
+        @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} is already up to date. Skipping"
       else
         pull_commit_submodule(repo_to_clone, commit_message)
       end
@@ -85,6 +81,15 @@ class Updater
         push_to_origin(repo['name'], repo['branch'])
       end
     end
+  end
+
+  # get the current sha for the head of the target submodule branch
+  def determine_submodule_sha
+    @stdout.out_success "\nFirst, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
+    @stdout.out_success 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
+    submodule_head_sha = get_sha_for_branch_origin_head
+    @stdout.out_success("\nDetermined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
+    submodule_head_sha
   end
 
   # get the sha of HEAD for origin/{target_branch}
