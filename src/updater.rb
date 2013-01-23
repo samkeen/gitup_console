@@ -68,9 +68,7 @@ class Updater
     # get the current sha for the head of the target submodule branch
     @stdout.out_success "\nFirst, I'll determine the sha for the HEAD of branch: '#{@settings['target_submodule_target_branch']}'  for the submodule to be updated."
     @stdout.out_success 'With that known, I can determine if a given repo is "Up to Date" for that particular submodule.'
-    clone_repo_to(@settings['target_submodule_name'], @settings['build_dir'])
-    chdir_to_repo(@settings['target_submodule_name'])
-    submodule_head_sha = checkout_branch(@settings['target_submodule_target_branch'])
+    submodule_head_sha = get_sha_for_branch_origin_head
     @stdout.out_success("\nDetermined [#{@settings['target_submodule_name']}]'s branch [#{@settings['target_submodule_target_branch']}]'s HEAD sha to be: #{submodule_head_sha}")
     verbose("\nNow starting the process of all the repos you've chosen to update\n")
     @requested_repos.each do |repo_to_clone|
@@ -78,20 +76,10 @@ class Updater
       clone_repo_to(repo_to_clone['name'], @settings['build_dir'])
       chdir_to_repo(repo_to_clone['name'])
       checkout_branch(repo_to_clone['branch'])
-
       if submodule_up_to_date(repo_to_clone['submodule_dir'], submodule_head_sha)
         @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule {@settings['target_submodule_name']} is already up to date. Skipping"
       else
-        init_submodule(repo_to_clone['submodule_dir'])
-        chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
-        if confirm_log_diff_with_origin
-          pull_branch_origin_latest(@settings['target_submodule_target_branch'])
-          chdir_to_repo(repo_to_clone['name'])
-          make_git_commit(commit_message, "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
-          @repos_to_push << repo_to_clone
-        else
-          @stdout.out_warn("Skipping processing of repo #{repo_to_clone['name']}")
-        end
+        pull_commit_submodule(repo_to_clone, commit_message)
       end
     end
     if @repos_to_push.count > 0
@@ -101,6 +89,29 @@ class Updater
       @repos_to_push.each do |repo|
         push_to_origin(repo['name'], repo['branch'])
       end
+    end
+  end
+
+  # get the sha of HEAD for origin/{target_branch}
+  def get_sha_for_branch_origin_head
+    clone_repo_to(@settings['target_submodule_name'], @settings['build_dir'])
+    chdir_to_repo(@settings['target_submodule_name'])
+    checkout_branch(@settings['target_submodule_target_branch'])
+  end
+
+  # Pull, then commit the submodule commits
+  # @param [Hash] repo_to_clone
+  # @param [String] commit_message
+  def pull_commit_submodule(repo_to_clone, commit_message)
+    init_submodule(repo_to_clone['submodule_dir'])
+    chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
+    if confirm_confirm_pulls_from_origin
+      pull_branch_origin_latest(@settings['target_submodule_target_branch'])
+      chdir_to_repo(repo_to_clone['name'])
+      make_git_commit(commit_message, "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
+      @repos_to_push << repo_to_clone
+    else
+      @stdout.out_warn("Skipping processing of repo #{repo_to_clone['name']}")
     end
   end
 
@@ -279,7 +290,7 @@ class Updater
   # this lets the client see the commits on origin that are about to
   # be pulled
   # @return [Boolean]
-  def confirm_log_diff_with_origin
+  def confirm_confirm_pulls_from_origin
     @stdout.out_success("\nCommits on Origin that will be pulled\n")
     @stdout.out show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}")
     @stdout.out_success("#{context_prompt} Confirm pull? [y/N]")
