@@ -8,13 +8,15 @@ class Updater
   # @param [Hash] options
   # @param [Stdout] stdout
   def initialize(stdout, settings, options = {})
-    @settings         = settings
-    @verbose_on       = options[:verbose]
-    @requested_repos  = []
-    @repos_to_push    = []
-    @commander        = Command.new
-    stdout.verbose_on = @verbose_on
-    @stdout           = stdout
+    @settings          = settings
+    @verbose_on        = options[:verbose]
+    @requested_repos   = []
+    @repos_to_push     = []
+    @commander         = Command.new
+    @repo_context      = ''
+    @submodule_context = ''
+    stdout.verbose_on  = @verbose_on
+    @stdout            = stdout
   end
 
   # @param [String] message
@@ -131,6 +133,8 @@ class Updater
     assert_path_exists(repo_path, "This is the expected path to the repo: #{repo_name}")
     verbose("Changing to dir: #{repo_path}")
     FileUtils.chdir(repo_path)
+    @repo_context      = repo_name
+    @submodule_context = ''
   end
 
   # Helper method to cd into the given repo's submodule dir.
@@ -141,6 +145,7 @@ class Updater
     assert_path_exists(repo_submodule_path, "This is the expected path to the repo #{repo_meta['name']}'s' submodule: #{target_submodule}")
     verbose("Changing to dir: #{repo_submodule_path}")
     FileUtils.chdir(repo_submodule_path)
+    @submodule_context = target_submodule
   end
 
   # Utility method to assert a filesystem path exists
@@ -277,7 +282,7 @@ class Updater
   def confirm_log_diff_with_origin
     @stdout.out_success("\nCommits on Origin that will be pulled\n")
     @stdout.out show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}")
-    @stdout.out_success("Confirm pull? [y/N]")
+    @stdout.out_success("#{context_prompt} Confirm pull? [y/N]")
     gets.chomp.upcase == 'Y'
   end
 
@@ -287,7 +292,7 @@ class Updater
   def confirm_push(repo_name, branch_name)
     @stdout.out_success("\nShowing last #{@settings['git_log_number_of_lines']} lines of Repo '#{repo_name}', Branch '#{branch_name}' log\n")
     @stdout.out show_git_log(@settings['git_log_number_of_lines'])
-    @stdout.out_success("Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
+    @stdout.out_success("#{context_prompt} Confirm push of Repo '#{repo_name}', Branch '#{branch_name}' to Origin? [y/N]")
     gets.chomp.upcase == 'Y'
   end
 
@@ -297,6 +302,10 @@ class Updater
     num_lines_arg = number_of_lines.nil? ? '' : "-#{number_of_lines}"
     log_endpoints = log_endpoints.nil? ? '' : log_endpoints
     @commander.run_command "git log #{@settings['git_log_format']} #{num_lines_arg} #{log_endpoints}"
+  end
+
+  def context_prompt
+    "[#@repo_context:#@submodule_context]"
   end
 
 end
