@@ -35,7 +35,7 @@ puts ""
 puts "  * Multiple 'sanity check' confirmations occur during the process".colorize :green
 puts "    If something doesn't look right for a repo, you can skip it and move to the next".colorize :green
 puts ""
-puts "  * This script will NEVER PUSH TO ORIGIN without your confirmation\n".colorize :green
+puts "  * This script will NEVER PUSH TO ORIGIN without your confirmation".colorize :green
 puts ""
 puts "  * Fully stateless. The build dir is removed and re-created for each run of the script\n".colorize :green
 
