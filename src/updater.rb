@@ -292,7 +292,7 @@ class Updater
     if confirm_push(repo_name, branch_name)
       @stdout.verbose("Pushing repo [#{repo_name}]'s branch '#{branch_name}' to origin...")
       git_push_command = "git push origin #{branch_name}"
-      @stdout.out "Would have run #{Dir.pwd}> #{git_push_command} here" #@commander.run_command(git_push_command)
+      @stdout.out @commander.run_command(git_push_command)
     else
       @stdout.out_warn("Skipping push of repo #{repo_name}")
     end
