@@ -24,6 +24,26 @@ class Updater
     not @requested_repos.empty?
   end
 
+  def report
+    prep_build
+    submodule_head_sha = determine_submodule_sha
+    @settings['known_repos'].each do |repo_to_clone|
+      @stdout.out_success("\nProcessing repo: '#{repo_to_clone['name']}'")
+      clone_repo_to(repo_to_clone['name'], @settings['build_dir'])
+      chdir_to_repo(repo_to_clone['name'])
+      init_submodule("#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
+      checkout_branch(repo_to_clone['branch'])
+      submodule_relative_path = "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}"
+      if submodule_up_to_date(submodule_relative_path, submodule_head_sha)
+        @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} is already up to date. Skipping"
+      else
+        chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
+        @stdout.out show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}")
+        @stdout.out_success "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} Needs updating"
+      end
+    end
+  end
+
   # @return [String]
   def get_menu
     menu_list = "  1) ALL (process all repos listed below)\n"
@@ -67,7 +87,8 @@ class Updater
       clone_repo_to(repo_to_clone['name'], @settings['build_dir'])
       chdir_to_repo(repo_to_clone['name'])
       checkout_branch(repo_to_clone['branch'])
-      if submodule_up_to_date(repo_to_clone['submodule_dir'], submodule_head_sha)
+      submodule_relative_path = "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}"
+      if submodule_up_to_date(submodule_relative_path, submodule_head_sha)
         @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} is already up to date. Skipping"
       else
         pull_commit_submodule(repo_to_clone, commit_message)
@@ -103,7 +124,7 @@ class Updater
   # @param [Hash] repo_to_clone
   # @param [String] commit_message
   def pull_commit_submodule(repo_to_clone, commit_message)
-    init_submodule(repo_to_clone['submodule_dir'])
+    init_submodule("#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}")
     chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
     if confirm_confirm_pulls_from_origin
       pull_branch_origin_latest(@settings['target_submodule_target_branch'])
@@ -224,19 +245,17 @@ class Updater
   # @param [String] submodule_target_sha
   # @return [Boolean]
   def submodule_up_to_date(submodule_relative_path, submodule_target_sha)
-    git_submodule_status_command = "git submodule status #{submodule_relative_path}"
+    git_submodule_status_command = "git submodule status #{submodule_relative_path} #{submodule_relative_path}"
     sha_response = @commander.run_command(git_submodule_status_command)
     @stdout.verbose sha_response
-    # parsing sha out of this type response -bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin
-    sha_response.match(/-([abcdef0-9]+) /)
-    repos_submodule_sha = $1
-    repos_submodule_sha == submodule_target_sha
+    # parsing sha out of this type response " bd5fb0ce3d9646d9afd3cb4007b87d0cf1811a03 src/vendor/saccharin "
+    sha_response[/\b[0-9a-f]{40}\b/] == submodule_target_sha
   end
 
   # @param [String] submodule_path
   def init_submodule(submodule_path)
     assert_path_exists(submodule_path, 'This is the expected path to the Saccharin submodule')
-    @stdout.out_success("\nInitializing all submodules at path: '#{Dir.pwd}/#{submodule_path}'")
+    @stdout.out_success("\nInitializing submodules at path: '#{Dir.pwd}/#{submodule_path}'")
     @stdout.verbose @commander.run_command("git submodule update --init #{submodule_path}")
   end
 

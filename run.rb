@@ -51,12 +51,18 @@ settings['build_dir'] = BUILD_DIR
 
 updater = Updater.new(Stdout.new, settings, :verbose => verbose)
 
-puts updater.get_menu
-
-updater.record_menu_input()
-
-if updater.has_repos_to_clone?
-    updater.process_repos
+if ENV['REPORT']
+  updater.report
 else
+  puts updater.get_menu
+
+  updater.record_menu_input()
+
+  if updater.has_repos_to_clone?
+    updater.process_repos
+  else
     puts 'No valid repo indexes found, nothing to process'.colorize :yellow
+  end
 end
+
+
