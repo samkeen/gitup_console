@@ -12,7 +12,6 @@ SRC_DIR            = "#{THIS_DIR}/src"
 SETTINGS_FILE_PATH = "#{THIS_DIR}/settings.yml"
 
 require 'colorize'
-require 'yaml'
 require 'updater'
 
 verbose = false
