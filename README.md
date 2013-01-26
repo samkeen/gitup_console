@@ -1,1 +1,1 @@
-Simple Python script for updating a submodule shared by multiple repositories
+Simple Ruby script for updating a submodule shared by multiple repositories
