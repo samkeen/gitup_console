@@ -14,6 +14,7 @@ SETTINGS_FILE_PATH = "#{THIS_DIR}/settings.yml"
 require 'colorize'
 require 'yaml'
 require 'updater'
+require 'git_commander'
 
 verbose = false
 arg1 = ARGV[0]
@@ -49,7 +50,8 @@ end
 
 settings['build_dir'] = BUILD_DIR
 
-updater = Updater.new(Stdout.new, settings, :verbose => verbose)
+git_commander = GitCommander.new(settings, Command.new(verbose), Stdout.new)
+updater = Updater.new(Stdout.new, git_commander, settings, :verbose => verbose)
 
 if ENV['REPORT']
   updater.report
