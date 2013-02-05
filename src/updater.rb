@@ -1,6 +1,8 @@
 require 'FileUtils'
 require 'command'
 require 'stdout'
+require 'digest'
+require 'mailer'
 
 class Updater
 
@@ -31,6 +33,9 @@ class Updater
 
   def report
     prep_build
+    up_to_date_modules = {}
+    need_to_update     = {}
+    log_lines_lookup   = {}
     submodule_head_sha = determine_submodule_sha
     @settings['known_repos'].each do |repo_to_clone|
       @stdout.out_success("\nProcessing repo: '#{repo_to_clone['name']}'")
@@ -42,13 +47,57 @@ class Updater
       git.checkout_branch(repo_to_clone['branch'])
       submodule_relative_path = "#{repo_to_clone['submodule_dir']}/#{@settings['target_submodule_name']}"
       if git.submodule_up_to_date(submodule_relative_path, submodule_head_sha)
+        up_to_date_modules[repo_to_clone['name']] = repo_to_clone
         @stdout.out_warn "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} is already up to date. Skipping"
       else
         chdir_to_repo_submodule(repo_to_clone, @settings['target_submodule_name'])
-        @stdout.out git.show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}")
+        log_lines = git.show_git_log(nil, "HEAD..origin/#{@settings['target_submodule_target_branch']}").strip
+        @stdout.out log_lines
+        repo_to_clone['log_lines'] = log_lines
+        log_lines_key = Digest::SHA1.hexdigest(log_lines)
+        (log_lines_lookup[log_lines] || log_lines_lookup[log_lines]=[]) << repo_to_clone['name']
+        need_to_update[repo_to_clone['name']] = repo_to_clone
         @stdout.out_success "The repo: #{repo_to_clone['name']} submodule #{@settings['target_submodule_name']} Needs updating"
       end
     end
+    report = render_report(up_to_date_modules, need_to_update, log_lines_lookup)
+    puts report
+    if @settings['report_email']
+      puts "Mailing report to #{@settings['report_email']}"
+      mailer = Mailer.new
+      mailer.send_email(@settings['report_email'],
+                        :from => 'ci@shopigniter.com', :from_alias => 'CI Server',
+                        :subject => 'Submodule Report', :body => report)
+    end
+  end
+
+  # @param [Hash] up_to_date_modules
+  # @param [Hash] need_to_update
+  # @param [Hash] log_lines_lookup
+  def render_report(up_to_date_modules, need_to_update, log_lines_lookup)
+    output = []
+    output << "===== Up to Date Repos ======"
+    if up_to_date_modules.empty?
+      output << "Of the repos checked, NONE where up to date\n"
+    else
+      output << "These repos are up to date with respect to the [#{@settings['target_submodule_name']}] submodule:"
+      output << "   #{up_to_date_modules.keys.join(', ')}"
+    end
+    output << "\n===== Outdated Repos ======"
+    if need_to_update.empty?
+      output << "Of the repos checked, ALL where up to date"
+    else
+      output << "These repos need updating with respect to the [#{@settings['target_submodule_name']}] submodule:\n"
+      log_lines_lookup.each do |log_lines, repos|
+        output << "These repos:"
+        output << "    #{repos.join(', ')}"
+        output << "all have this state to pull:"
+        output << log_lines
+      end
+    end
+    output = output.join("\n")
+    puts output
+    output
   end
 
   # @return [String]

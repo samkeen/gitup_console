@@ -35,3 +35,7 @@ target_submodule_name:
 # this is the branch name that target submodule
 # will be pulled to the HEAD of
 target_submodule_target_branch:
+
+# where to send the output from report.rb
+# if empty, will not attempt to send email
+report_email: example@example.com

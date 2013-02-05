@@ -53,18 +53,4 @@ settings['build_dir'] = BUILD_DIR
 git_commander = GitCommander.new(settings, Command.new(verbose), Stdout.new)
 updater = Updater.new(Stdout.new, git_commander, settings, :verbose => verbose)
 
-if ENV['REPORT']
-  updater.report
-else
-  puts updater.get_menu
-
-  updater.record_menu_input()
-
-  if updater.has_repos_to_clone?
-    updater.process_repos
-  else
-    puts 'No valid repo indexes found, nothing to process'.colorize :yellow
-  end
-end
-
-
+updater.report
