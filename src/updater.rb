@@ -2,7 +2,7 @@ require 'FileUtils'
 require 'command'
 require 'stdout'
 require 'digest'
-require 'mailer'
+require 'html_mailer'
 
 class Updater
 
@@ -61,7 +61,7 @@ class Updater
     puts report
     if settings['report_email']
       puts "Mailing report to #{settings['report_email']}"
-      mailer = Mailer.new
+      mailer = HtmlMailer.new
       mailer.send_email(settings['report_email'],
                         :from => 'ci@shopigniter.com', :from_alias => 'CI Server',
                         :subject => 'Submodule Report', :body => report)
@@ -72,29 +72,12 @@ class Updater
   # @param [Hash] need_to_update
   # @param [Hash] log_lines_lookup
   def render_report(up_to_date_modules, need_to_update, log_lines_lookup)
-    output = []
-    output << "===== Up to Date Repos ======"
-    if up_to_date_modules.empty?
-      output << "Of the repos checked, NONE where up to date\n"
-    else
-      output << "These repos are up to date with respect to the [#{settings['target_submodule_name']}] submodule:"
-      output << "   #{up_to_date_modules.keys.join(', ')}"
-    end
-    output << "\n===== Outdated Repos ======"
-    if need_to_update.empty?
-      output << "Of the repos checked, ALL where up to date"
-    else
-      output << "These repos need updating with respect to the [#{settings['target_submodule_name']}] submodule:\n"
-      log_lines_lookup.each do |log_lines, repos|
-        output << "These repos:"
-        output << "    #{repos.join(', ')}"
-        output << "all have this state to pull:"
-        output << log_lines
-      end
-    end
-    output = output.join("\n")
-    puts output
-    output
+    require 'erb'
+    require_relative 'templates/report_results_email'
+    email    = ReportResultsEmail.new(up_to_date_modules, need_to_update, log_lines_lookup, settings)
+    template = File.open("#{settings['templates_dir']}/report_results_email.erb", "r").read
+    renderer = ERB.new(template)
+    renderer.result(email.get_bindings)
   end
 
   # @return [String]

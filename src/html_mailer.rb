@@ -1,6 +1,6 @@
 require 'net/smtp'
 
-class Mailer
+class HtmlMailer
 
   def send_email(to,opts={})
     opts[:server]      ||= 'localhost'
@@ -12,6 +12,8 @@ class Mailer
     msg = <<END_OF_MESSAGE
 From: #{opts[:from_alias]} <#{opts[:from]}>
 To: <#{to}>
+MIME-Version: 1.0
+Content-type: text/html
 Subject: #{opts[:subject]}
 
     #{opts[:body]}

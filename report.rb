@@ -48,7 +48,8 @@ else
   exit 1
 end
 
-settings['build_dir'] = BUILD_DIR
+settings['build_dir']     = BUILD_DIR
+settings['templates_dir'] = "#{THIS_DIR}/src/templates"
 
 git_commander = GitCommander.new(settings, Command.new(verbose), Stdout.new)
 updater = Updater.new(Stdout.new, git_commander, settings, :verbose => verbose)
