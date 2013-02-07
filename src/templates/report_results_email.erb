@@ -19,9 +19,11 @@
 <% else %>
   These repos need updating with respect to the [<%= settings['target_submodule_name'] %>] submodule:
   <% log_lines_lookup.each do |log_lines, repos| %>
-    These repos:
-    <%= repos.keys.join(', ') %>
-    all have this state to pull:
+    <p>The repos: <%= repos.join(', ') %><p>
+    <br />
+    <p>all have this state to pull:</p>
     <%= log_lines %>
+    <br />
+    <br />
   <% end %>
 <% end %>
