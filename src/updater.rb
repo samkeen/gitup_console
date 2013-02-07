@@ -29,7 +29,8 @@ class Updater
     not @requested_repos.empty?
   end
 
-  def report
+  # @param [Boolean] ci_mode (Continuous Integration Mode)
+  def report(ci_mode)
     prep_build
     up_to_date_modules = {}
     need_to_update     = {}
@@ -59,12 +60,20 @@ class Updater
     end
     report = render_report(up_to_date_modules, need_to_update, log_lines_lookup)
     puts report
-    if settings['report_email']
+    if settings['report_email'] and ! ci_mode
       puts "Mailing report to #{settings['report_email']}"
       mailer = HtmlMailer.new
       mailer.send_email(settings['report_email'],
                         :from => 'ci@shopigniter.com', :from_alias => 'CI Server',
                         :subject => 'Submodule Report', :body => report)
+    end
+    if ci_mode
+      unless need_to_update.empty?
+        puts "FAILING BUILD since repos are out of date with regards to the [#{settings['target_submodule_name']}] submodule"
+        exit 1
+      else
+        puts "No repos out of date with regards to [#{settings['target_submodule_name']}] submodule"
+      end
     end
   end
 

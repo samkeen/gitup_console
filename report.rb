@@ -17,6 +17,7 @@ require 'updater'
 require 'git_commander'
 
 verbose = false
+ci_mode = false
 arg1 = ARGV[0]
 ARGV.clear
 case arg1
@@ -24,6 +25,8 @@ case arg1
     verbose = false
   when '-v', '--version'
     verbose = true
+  when '--jenkins'
+    ci_mode = true
   else
     puts "Usage: #{__FILE__} [-v|--verbose]"
     exit 1
@@ -54,4 +57,4 @@ settings['templates_dir'] = "#{THIS_DIR}/src/templates"
 git_commander = GitCommander.new(settings, Command.new(verbose), Stdout.new)
 updater = Updater.new(Stdout.new, git_commander, settings, :verbose => verbose)
 
-updater.report
+updater.report(ci_mode)
