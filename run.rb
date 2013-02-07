@@ -22,7 +22,7 @@ ARGV.clear
 case arg1
   when nil
     verbose = false
-  when '-v', '--version'
+  when '-v', '--verbose'
     verbose = true
   else
     puts "Usage: #{__FILE__} [-v|--verbose]"
