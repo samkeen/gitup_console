@@ -1,5 +1,5 @@
 # simple view model
-class ReportResultsEmail
+class ReportResults
   attr_accessor :need_to_update, :log_lines_lookup, :settings,
                 :processed_repos
 

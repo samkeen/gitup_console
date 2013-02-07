@@ -1,0 +1,26 @@
+== Submodule State Report ==
+
+  This job checks the state of the submodule <%= settings['target_submodule_name'] %>
+  with regards to the Repos that contain that submodule.
+
+== Repos Processed ==
+
+  <% processed_repos.each do |repo_name, repo_meta| %>
+  <%= repo_name %> : <%= repo_meta[:status] %>
+  <% end %>
+
+== Outdated Repo States ==
+
+  This shows the commits that need to be pulled
+
+<% if need_to_update.empty? %>
+  NONE outdated so nothing to show here
+<% else %>
+  These repos need updating with respect to the [<%= settings['target_submodule_name'] %>] submodule:
+  <% log_lines_lookup.each do |log_lines, repos| %>
+    These repos:
+    <%= repos.keys.join(', ') %>
+    all have this state to pull:
+    <%= log_lines %>
+  <% end %>
+<% end %>

@@ -58,14 +58,16 @@ class Updater
         stdout.out_success "The repo: #{repo_to_clone['name']} submodule #{settings['target_submodule_name']} Needs updating"
       end
     end
-    report = render_report(up_to_date_modules, need_to_update, log_lines_lookup)
-    puts report
+    require_relative 'templates/report_results'
+    report_results  = ReportResults.new(up_to_date_modules, need_to_update, log_lines_lookup, settings)
+    puts render_report(report_results, :console)
     if settings['report_email'] and ! ci_mode
       puts "Mailing report to #{settings['report_email']}"
       mailer = HtmlMailer.new
+      rendered_report = render_report(report_results, :email)
       mailer.send_email(settings['report_email'],
                         :from => 'ci@shopigniter.com', :from_alias => 'CI Server',
-                        :subject => 'Submodule Report', :body => report)
+                        :subject => 'Submodule Report', :body => rendered_report)
     end
     if ci_mode
       unless need_to_update.empty?
@@ -77,16 +79,13 @@ class Updater
     end
   end
 
-  # @param [Hash] up_to_date_modules
-  # @param [Hash] need_to_update
-  # @param [Hash] log_lines_lookup
-  def render_report(up_to_date_modules, need_to_update, log_lines_lookup)
+  # @param [ReportResults] report_results
+  # @param [Symbol] render_type :email|:console
+  def render_report(report_results, render_type)
     require 'erb'
-    require_relative 'templates/report_results_email'
-    email    = ReportResultsEmail.new(up_to_date_modules, need_to_update, log_lines_lookup, settings)
-    template = File.open("#{settings['templates_dir']}/report_results_email.erb", "r").read
+    template = File.open("#{settings['templates_dir']}/report_results_#{render_type}.erb", "r").read
     renderer = ERB.new(template)
-    renderer.result(email.get_bindings)
+    renderer.result(report_results.get_bindings)
   end
 
   # @return [String]
