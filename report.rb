@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+# This in the non-interactive, non-mutating version
+# When run, it only reports the status of the repos with respect the
+# the submodule
+
 $LOAD_PATH.unshift( File.join( File.dirname(__FILE__), 'src' ) )
 
 # Get the full path to this directory

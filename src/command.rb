@@ -1,4 +1,3 @@
-# General Utility module for this App's Rake file
 require 'open3'
 class Command
 

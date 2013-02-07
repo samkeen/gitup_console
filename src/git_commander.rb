@@ -1,5 +1,4 @@
 class GitCommander
-  # To change this template use File | Settings | File Templates.
 
   attr_reader :base_repo_path, :build_dir, :git_log_format, :git_log_num_lines, :commander, :stdout
 

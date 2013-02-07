@@ -1,5 +1,10 @@
 #!/usr/bin/env ruby
 
+# This in the interactive, possible mutating version
+# When run, it reports the status of the repos with respect the
+# the submodule and then prompts you to update and then push
+# the repos to origin
+
 $LOAD_PATH.unshift( File.join( File.dirname(__FILE__), 'src' ) )
 
 # Get the full path to this directory
