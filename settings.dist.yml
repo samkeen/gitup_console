@@ -21,11 +21,11 @@ git_repo_base_clone_path:
 known_repos:
     - name:          RepoName1
       branch:        development
-      submodule_dir: src/vendor
+      submodules: src/vendor
 
     - name:          RepoName2
       branch:        master
-      submodule_dir: src/vendor
+      submodules: src/vendor
 
 # For each repo (listed via KNOWN_REPOS, this is the 
 # name (git repo name) of
