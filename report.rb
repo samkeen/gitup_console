@@ -31,6 +31,11 @@ options = {
     :verbose => {
         :found  => false,
         :value  => nil,
+        :keyval => false
+    },
+    :submodule => {
+        :found  => false,
+        :value  => nil,
         :keyval => true
     }
 }
@@ -57,6 +62,18 @@ if File.file? SETTINGS_FILE_PATH
 else
   puts "No settings file found at: #{SETTINGS_FILE_PATH}".colorize :red
   exit 1
+end
+
+# allow command line submodule override `--submodule=git_uri_name:directory_name`
+if args[:submodule][:found] and ! args[:submodule][:value].to_s.empty?
+  parts = args[:submodule][:value].split(':')
+  if parts.count == 2
+    settings['target_submodule_git_uri_name'] = parts[0]
+    settings['target_submodule_name'] = parts[1]
+  else
+    settings['target_submodule_git_uri_name'] = parts[0]
+    settings['target_submodule_name'] = parts[0]
+  end
 end
 
 settings['build_dir']     = BUILD_DIR

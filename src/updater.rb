@@ -41,7 +41,14 @@ class Updater
       git.clone_repo_to(repo_to_clone['name'], settings['build_dir'])
       chdir_to_repo(repo_to_clone['name'])
       submodule_path = "#{repo_to_clone['submodule_dir']}/#{settings['target_submodule_name']}"
-      assert_path_exists(submodule_path, 'This is the expected path to the Saccharin submodule')
+      unless File.directory? submodule_path
+        stdout.out_warn("Submodule path not found: #{submodule_path}")
+        stdout.out_warn("This is the expected path to the #{settings['target_submodule_name']} submodule")
+        stdout.out_warn("Skipping...")
+        up_to_date_modules[repo_to_clone['name']] = repo_to_clone
+        next
+      end
+      assert_path_exists(submodule_path, "This is the expected path to the #{settings['target_submodule_name']} submodule")
       git.init_submodule(submodule_path)
       git.checkout_branch(repo_to_clone['branch'])
       submodule_relative_path = "#{repo_to_clone['submodule_dir']}/#{settings['target_submodule_name']}"
@@ -143,12 +150,19 @@ class Updater
       chdir_to_repo(repo_to_clone['name'])
       git.checkout_branch(repo_to_clone['branch'])
       submodule_relative_path = "#{repo_to_clone['submodule_dir']}/#{settings['target_submodule_name']}"
+      unless File.directory? submodule_relative_path
+        stdout.out_warn("Submodule path not found: #{submodule_relative_path}")
+        stdout.out_warn("This is the expected path to the #{settings['target_submodule_name']} submodule")
+        stdout.out_warn("Skipping...")
+        next
+      end
       if git.submodule_up_to_date(submodule_relative_path, submodule_head_sha)
         stdout.out_warn "The repo: #{repo_to_clone['name']} submodule #{settings['target_submodule_name']} is already up to date. Skipping"
       else
         pull_commit_submodule(repo_to_clone, commit_message)
       end
     end
+    stdout.out_success("Done")
     if repos_to_push.count > 0
       single_plural = repos_to_push.count == 1 ? 'Repo has been updated and is' : 'Repos have been updated and are'
       stdout.out_success "\n#{repos_to_push.count} #{single_plural} ready to push."
@@ -178,7 +192,7 @@ class Updater
 
   # get the sha of HEAD for origin/{target_branch}
   def get_sha_for_branch_origin_head
-    git.clone_repo_to(settings['target_submodule_name'], settings['build_dir'])
+    git.clone_repo_to(settings['target_submodule_git_uri_name'], settings['build_dir'])
     chdir_to_repo(settings['target_submodule_name'])
     git.checkout_branch(settings['target_submodule_target_branch'])
   end
