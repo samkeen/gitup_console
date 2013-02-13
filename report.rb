@@ -19,22 +19,26 @@ require 'colorize'
 require 'yaml'
 require 'updater'
 require 'git_commander'
+require 'command_line_args'
+include CommandLineArgs
 
-verbose = false
-ci_mode = false
-arg1 = ARGV[0]
-ARGV.clear
-case arg1
-  when nil
-    verbose = false
-  when '-v', '--version'
-    verbose = true
-  when '--jenkins'
-    ci_mode = true
-  else
-    puts "Usage: #{__FILE__} [-v|--verbose]"
-    exit 1
-end
+options = {
+    :jenkins => {
+        :found  => false,
+        :value  => nil,
+        :keyval => false
+    },
+    :verbose => {
+        :found  => false,
+        :value  => nil,
+        :keyval => true
+    }
+}
+
+args = CommandLineArgs::parse_cmd_line_args(__FILE__, options)
+
+verbose = args[:verbose][:found]
+ci_mode = args[:jenkins][:found]
 
 puts "\nThis script is implemented in a way to DO NO HARM. This is accomplished via: \n".colorize :green
 puts "  * All local work with Repos is done in an isolated build directory [#{BUILD_DIR}]".colorize :green
