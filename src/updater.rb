@@ -193,7 +193,7 @@ class Updater
   # get the sha of HEAD for origin/{target_branch}
   def get_sha_for_branch_origin_head
     git.clone_repo_to(settings['target_submodule_git_uri_name'], settings['build_dir'])
-    chdir_to_repo(settings['target_submodule_name'])
+    chdir_to_repo(settings['target_submodule_git_uri_name'])
     git.checkout_branch(settings['target_submodule_target_branch'])
   end
 
