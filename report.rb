@@ -68,7 +68,9 @@ end
 if args[:submodule][:found] and ! args[:submodule][:value].to_s.empty?
   parts = args[:submodule][:value].split(':')
   if parts.count == 2
+    puts "overriding target_submodule_git_uri_name to: #{parts[0]}"
     settings['target_submodule_git_uri_name'] = parts[0]
+    puts "overriding target_submodule_git_uri_name to: #{parts[1]}"
     settings['target_submodule_name'] = parts[1]
   else
     settings['target_submodule_git_uri_name'] = parts[0]
